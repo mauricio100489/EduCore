@@ -1,0 +1,64 @@
+@inherits LayoutComponentBase
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudLayout>
+    <MudAppBar Elevation="2" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.School" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Class="ml-2" Style="font-weight: 700; letter-spacing: 1px;">
+                EduCore
+            </MudText>
+        </MudStack>
+        <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="ml-2">
+                    @context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                </MudChip>
+                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Dense="true"
+                         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle2">@context.User.Identity?.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                            </MudText>
+                        </MudStack>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout">
+                        Cerrar Sesion
+                    </MudMenuItem>
+                </MudMenu>
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="4"
+               Variant="DrawerVariant.Mini" OpenMiniOnHover="true">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent Class="pa-4">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Style="padding-top:40px">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task Logout()
+    {
+        await AuthStateProvider.MarkUserAsLoggedOut();
+        Snackbar.Add("Sesion cerrada correctamente", Severity.Info);
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

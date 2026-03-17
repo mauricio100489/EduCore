@@ -1,0 +1,347 @@
+@page "/matriculas"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Matriculas</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">
+        <MudIcon Icon="@Icons.Material.Filled.AppRegistration" Class="mr-2" />
+        Matriculas
+    </MudText>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudTextField @bind-Value="_searchText" Placeholder="Buscar..." Variant="Variant.Outlined"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true" DebounceInterval="300" Margin="Margin.Dense" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            Nueva Matricula
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@FilteredEnrollments" Hover="true" Striped="true" Loading="@_loading"
+              LoadingProgressColor="Color.Primary" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Estudiante</MudTh>
+            <MudTh>Grado</MudTh>
+            <MudTh>Periodo</MudTh>
+            <MudTh>Seccion</MudTh>
+            <MudTh>Jornada</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align: center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Estudiante">@context.StudentName</MudTd>
+            <MudTd DataLabel="Grado">@context.GradeLevelName</MudTd>
+            <MudTd DataLabel="Periodo">@context.AcademicPeriodName</MudTd>
+            <MudTd DataLabel="Seccion">@context.Section</MudTd>
+            <MudTd DataLabel="Jornada">@context.Shift</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Size="Size.Small"
+                         Color="@(context.Status == EduCore.Domain.Enums.EnrollmentStatus.Active ? Color.Success :
+                                  context.Status == EduCore.Domain.Enums.EnrollmentStatus.Pending ? Color.Warning : Color.Error)">
+                    @context.Status
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteEnrollment(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Align="Align.Center" Class="pa-4">No se encontraron matriculas</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? "Editar Matricula" : "Nueva Matricula")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+            @* Tab 1: Datos Academicos *@
+            <MudTabPanel Text="Datos Academicos" Icon="@Icons.Material.Filled.School">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.StudentId" Label="Estudiante" Variant="Variant.Outlined" Required="true">
+                            @foreach (var s in _students)
+                            {
+                                <MudSelectItem Value="@s.Id">@s.FullName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.GradeLevelId" Label="Grado" Variant="Variant.Outlined" Required="true">
+                            @foreach (var g in _gradeLevels)
+                            {
+                                <MudSelectItem Value="@g.Id">@g.Name - @g.Section</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.AcademicPeriodId" Label="Periodo Academico" Variant="Variant.Outlined" Required="true">
+                            @foreach (var p in _periods)
+                            {
+                                <MudSelectItem Value="@p.Id">@p.Name (@p.Year)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.Section" Label="Seccion" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.Shift" Label="Jornada" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Matutina")">Matutina</MudSelectItem>
+                            <MudSelectItem Value="@("Vespertina")">Vespertina</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.ListNumber" Label="Numero de Lista" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_model.EnrollmentDate" Label="Fecha de Matricula" Variant="Variant.Outlined"
+                                       DateFormat="dd/MM/yyyy" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.EnrollmentMethod" Label="Metodo de Matricula" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Presencial")">Presencial</MudSelectItem>
+                            <MudSelectItem Value="@("En Linea")">En Linea</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_model.Status" Label="Estado" Variant="Variant.Outlined">
+                            @foreach (EduCore.Domain.Enums.EnrollmentStatus status in Enum.GetValues<EduCore.Domain.Enums.EnrollmentStatus>())
+                            {
+                                <MudSelectItem Value="@status">@status</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            @* Tab 2: Procedencia *@
+            <MudTabPanel Text="Procedencia" Icon="@Icons.Material.Filled.LocationCity">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.PreviousInstitute" Label="Instituto Anterior" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.PreviousInstituteAddress" Label="Direccion del Instituto Anterior" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.PreviousGrade" Label="Grado Anterior" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.PreviousShift" Label="Jornada Anterior" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            @* Tab 3: Becas y Pagos *@
+            <MudTabPanel Text="Becas y Pagos" Icon="@Icons.Material.Filled.Payments">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.HasScholarship" Label="Tiene Beca" Color="Color.Primary" />
+                    </MudItem>
+                    @if (_model.HasScholarship == true)
+                    {
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_model.ScholarshipAmount" Label="Monto de Beca" Variant="Variant.Outlined"
+                                             Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                        </MudItem>
+                    }
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.FullScholarship" Label="Beca Completa" Color="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.HasEnrollmentDiscount" Label="Tiene Descuento" Color="Color.Primary" />
+                    </MudItem>
+                    @if (_model.HasEnrollmentDiscount == true)
+                    {
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_model.DiscountAmount" Label="Monto de Descuento" Variant="Variant.Outlined"
+                                             Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                        </MudItem>
+                    }
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="_model.LevelingFee" Label="Cuota de Nivelacion" Variant="Variant.Outlined"
+                                         Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect @bind-Value="_model.PaymentForm" Label="Forma de Pago" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("EF")">Efectivo</MudSelectItem>
+                            <MudSelectItem Value="@("TR")">Transferencia</MudSelectItem>
+                            <MudSelectItem Value="@("TJ")">Tarjeta</MudSelectItem>
+                            <MudSelectItem Value="@("CH")">Cheque</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            @* Tab 4: Estado *@
+            <MudTabPanel Text="Estado" Icon="@Icons.Material.Filled.FactCheck">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.IsWithdrawn" Label="Retirado" Color="Color.Error" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.IsAuditor" Label="Oyente" Color="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.IsTransfer" Label="Traslado" Color="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.IsReentry" Label="Reingreso" Color="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.AcceptedTerms" Label="Acepto Terminos" Color="Color.Success" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="_model.ReportCardPrinted" Label="Boleta Impresa" Color="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Notes" Label="Notas" Variant="Variant.Outlined" Lines="3" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.GradeObservations" Label="Observaciones de Grado" Variant="Variant.Outlined" Lines="3" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEnrollment" Disabled="@_saving">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<EnrollmentDto> _enrollments = new();
+    private List<StudentDto> _students = new();
+    private List<GradeLevelDto> _gradeLevels = new();
+    private List<AcademicPeriodDto> _periods = new();
+    private EnrollmentDto _model = new();
+    private bool _loading = true, _dialogVisible, _isEdit, _saving;
+    private string _searchText = string.Empty;
+
+    private IEnumerable<EnrollmentDto> FilteredEnrollments => string.IsNullOrWhiteSpace(_searchText)
+        ? _enrollments
+        : _enrollments.Where(e =>
+            (e.StudentName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (e.GradeLevelName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (e.AcademicPeriodName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (e.Section?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (e.Shift?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _enrollments = await ApiService.GetListAsync<EnrollmentDto>("enrollments");
+            _students = await ApiService.GetListAsync<StudentDto>("students");
+            _gradeLevels = await ApiService.GetListAsync<GradeLevelDto>("gradelevels");
+            _periods = await ApiService.GetListAsync<AcademicPeriodDto>("academicperiods");
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _model = new EnrollmentDto
+        {
+            EnrollmentDate = DateTime.Now,
+            Status = EduCore.Domain.Enums.EnrollmentStatus.Pending
+        };
+        _isEdit = false;
+        _dialogVisible = true;
+    }
+
+    private void OpenEditDialog(EnrollmentDto enrollment)
+    {
+        _model = new EnrollmentDto
+        {
+            Id = enrollment.Id,
+            StudentId = enrollment.StudentId,
+            GradeLevelId = enrollment.GradeLevelId,
+            AcademicPeriodId = enrollment.AcademicPeriodId,
+            Section = enrollment.Section,
+            Shift = enrollment.Shift,
+            ListNumber = enrollment.ListNumber,
+            EnrollmentDate = enrollment.EnrollmentDate,
+            EnrollmentMethod = enrollment.EnrollmentMethod,
+            Status = enrollment.Status,
+            Notes = enrollment.Notes,
+            PreviousInstitute = enrollment.PreviousInstitute,
+            PreviousInstituteAddress = enrollment.PreviousInstituteAddress,
+            PreviousGrade = enrollment.PreviousGrade,
+            PreviousShift = enrollment.PreviousShift,
+            HasScholarship = enrollment.HasScholarship,
+            ScholarshipAmount = enrollment.ScholarshipAmount,
+            FullScholarship = enrollment.FullScholarship,
+            HasEnrollmentDiscount = enrollment.HasEnrollmentDiscount,
+            DiscountAmount = enrollment.DiscountAmount,
+            LevelingFee = enrollment.LevelingFee,
+            PaymentForm = enrollment.PaymentForm,
+            IsWithdrawn = enrollment.IsWithdrawn,
+            IsAuditor = enrollment.IsAuditor,
+            IsTransfer = enrollment.IsTransfer,
+            IsReentry = enrollment.IsReentry,
+            AcceptedTerms = enrollment.AcceptedTerms,
+            ReportCardPrinted = enrollment.ReportCardPrinted,
+            GradeObservations = enrollment.GradeObservations,
+            LegacyEnrollmentId = enrollment.LegacyEnrollmentId
+        };
+        _isEdit = true;
+        _dialogVisible = true;
+    }
+
+    private async Task SaveEnrollment()
+    {
+        _saving = true;
+        try
+        {
+            if (_isEdit) await ApiService.PutAsync($"enrollments/{_model.Id}", _model);
+            else await ApiService.PostAsync<EnrollmentDto>("enrollments", _model);
+            Snackbar.Add(_isEdit ? "Matricula actualizada" : "Matricula creada", Severity.Success);
+            _dialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteEnrollment(EnrollmentDto enrollment)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync("Confirmar",
+            "Desea eliminar esta matricula?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            try
+            {
+                await ApiService.DeleteAsync($"enrollments/{enrollment.Id}");
+                Snackbar.Add("Matricula eliminada", Severity.Warning);
+                await LoadData();
+            }
+            catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+    }
+}

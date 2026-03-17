@@ -1,0 +1,58 @@
+@page "/niveles"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Niveles</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;"><MudIcon Icon="@Icons.Material.Filled.Layers" Class="mr-2" />Niveles / Grados</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreate">Nuevo Nivel</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@_items" Hover="true" Striped="true" Loading="@_loading" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Orden</MudTh><MudTh>Nombre</MudTh><MudTh>Seccion</MudTh><MudTh>Descripcion</MudTh><MudTh>Estado</MudTh><MudTh Style="text-align:center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Order</MudTd><MudTd>@context.Name</MudTd><MudTd>@context.Section</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd><MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">@(context.IsActive ? "Activo" : "Inactivo")</MudChip></MudTd>
+            <MudTd Style="text-align:center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEdit(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Del(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager PageSizeOptions="new[]{10,25}" /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dlg" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">@(_edit ? "Editar" : "Nuevo") Nivel</MudText></TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_m.Name" Label="Nombre" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_m.Section" Label="Seccion" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudNumericField @bind-Value="_m.Order" Label="Orden" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="_m.Description" Label="Descripcion" Variant="Variant.Outlined" Lines="2" /></MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dlg = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<GradeLevelDto> _items = new();
+    private GradeLevelDto _m = new();
+    private bool _loading = true, _dlg, _edit;
+
+    protected override async Task OnInitializedAsync() { _items = await ApiService.GetListAsync<GradeLevelDto>("gradelevels"); _loading = false; }
+    private void OpenCreate() { _m = new GradeLevelDto { IsActive = true }; _edit = false; _dlg = true; }
+    private void OpenEdit(GradeLevelDto g) { _m = new GradeLevelDto { Id = g.Id, Name = g.Name, Section = g.Section, Description = g.Description, Order = g.Order, IsActive = g.IsActive }; _edit = true; _dlg = true; }
+    private async Task Save() { if (_edit) await ApiService.PutAsync($"gradelevels/{_m.Id}", _m); else await ApiService.PostAsync<GradeLevelDto>("gradelevels", _m); Snackbar.Add("Guardado", Severity.Success); _dlg = false; _items = await ApiService.GetListAsync<GradeLevelDto>("gradelevels"); }
+    private async Task Del(GradeLevelDto g) { if (await DialogService.ShowMessageBoxAsync("Confirmar", $"Eliminar {g.Name}?", yesText: "Si", cancelText: "No") == true) { await ApiService.DeleteAsync($"gradelevels/{g.Id}"); _items = await ApiService.GetListAsync<GradeLevelDto>("gradelevels"); } }
+}

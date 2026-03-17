@@ -1,0 +1,70 @@
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="@_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    private bool _isDarkMode = false;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#1E3A5F",
+            Secondary = "#FF6B35",
+            Tertiary = "#4ECDC4",
+            AppbarBackground = "#1E3A5F",
+            Background = "#F5F7FA",
+            Surface = "#FFFFFF",
+            DrawerBackground = "#1E3A5F",
+            DrawerText = "#FFFFFF",
+            DrawerIcon = "#FFFFFF",
+            TextPrimary = "#2D3748",
+            TextSecondary = "#718096",
+            ActionDefault = "#718096",
+            Success = "#48BB78",
+            Warning = "#ECC94B",
+            Error = "#F56565",
+            Info = "#4299E1"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#4ECDC4",
+            Secondary = "#FF6B35",
+            Tertiary = "#1E3A5F",
+            AppbarBackground = "#1A202C",
+            Background = "#171923",
+            Surface = "#2D3748",
+            DrawerBackground = "#1A202C",
+            DrawerText = "#E2E8F0",
+            DrawerIcon = "#E2E8F0",
+            TextPrimary = "#E2E8F0",
+            TextSecondary = "#A0AEC0",
+            Success = "#48BB78",
+            Warning = "#ECC94B",
+            Error = "#FC8181",
+            Info = "#63B3ED"
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography() { FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" } }
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "8px"
+        }
+    };
+}

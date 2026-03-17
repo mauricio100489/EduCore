@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EduCore.API/EduCore.API.csproj" />
+    <Project Path="src/EduCore.Application/EduCore.Application.csproj" />
+    <Project Path="src/EduCore.Domain/EduCore.Domain.csproj" />
+    <Project Path="src/EduCore.Infrastructure/EduCore.Infrastructure.csproj" />
+    <Project Path="src/EduCore.Web/EduCore.Web.csproj" />
+  </Folder>
+</Solution>

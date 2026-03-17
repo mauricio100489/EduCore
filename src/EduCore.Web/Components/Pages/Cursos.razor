@@ -1,0 +1,84 @@
+@page "/cursos"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Cursos</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;"><MudIcon Icon="@Icons.Material.Filled.Class" Class="mr-2" />Cursos</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Nuevo Curso</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@_courses" Hover="true" Striped="true" Loading="@_loading" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Codigo</MudTh><MudTh>Nombre</MudTh><MudTh>Creditos</MudTh><MudTh>Horas/Sem</MudTh><MudTh>Nivel</MudTh><MudTh>Estado</MudTh><MudTh Style="text-align:center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Code</MudChip></MudTd>
+            <MudTd>@context.Name</MudTd><MudTd>@context.Credits</MudTd><MudTd>@context.HoursPerWeek</MudTd>
+            <MudTd>@context.GradeLevelName</MudTd>
+            <MudTd><MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">@(context.IsActive ? "Activo" : "Inactivo")</MudChip></MudTd>
+            <MudTd Style="text-align:center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Delete(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager PageSizeOptions="new[]{10,25,50}" /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">@(_isEdit ? "Editar" : "Nuevo") Curso</MudText></TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.Code" Label="Codigo" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.Name" Label="Nombre" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="_model.Description" Label="Descripcion" Variant="Variant.Outlined" Lines="2" /></MudItem>
+            <MudItem xs="6"><MudNumericField @bind-Value="_model.Credits" Label="Creditos" Variant="Variant.Outlined" Min="1" /></MudItem>
+            <MudItem xs="6"><MudNumericField @bind-Value="_model.HoursPerWeek" Label="Horas/Semana" Variant="Variant.Outlined" Min="1" /></MudItem>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_model.GradeLevelId" Label="Nivel / Grado" Variant="Variant.Outlined" Required="true">
+                    @foreach (var g in _gradeLevels) { <MudSelectItem Value="@g.Id">@g.Name - @g.Section</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@_saving">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<CourseDto> _courses = new();
+    private List<GradeLevelDto> _gradeLevels = new();
+    private CourseDto _model = new();
+    private bool _loading = true, _dialogVisible, _isEdit, _saving;
+
+    protected override async Task OnInitializedAsync() { _loading = true; _courses = await ApiService.GetListAsync<CourseDto>("courses"); _gradeLevels = await ApiService.GetListAsync<GradeLevelDto>("gradelevels"); _loading = false; }
+
+    private void OpenCreateDialog() { _model = new CourseDto { IsActive = true, Credits = 1, HoursPerWeek = 1 }; _isEdit = false; _dialogVisible = true; }
+    private void OpenEditDialog(CourseDto c) { _model = new CourseDto { Id = c.Id, Code = c.Code, Name = c.Name, Description = c.Description, Credits = c.Credits, HoursPerWeek = c.HoursPerWeek, GradeLevelId = c.GradeLevelId, IsActive = c.IsActive }; _isEdit = true; _dialogVisible = true; }
+
+    private async Task Save() {
+        _saving = true;
+        try {
+            if (_isEdit) await ApiService.PutAsync($"courses/{_model.Id}", _model);
+            else await ApiService.PostAsync<CourseDto>("courses", _model);
+            Snackbar.Add(_isEdit ? "Curso actualizado" : "Curso creado", Severity.Success);
+            _dialogVisible = false; _courses = await ApiService.GetListAsync<CourseDto>("courses");
+        } catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task Delete(CourseDto c) {
+        if (await DialogService.ShowMessageBoxAsync("Confirmar", $"Eliminar {c.Name}?", yesText: "Si", cancelText: "No") == true) {
+            await ApiService.DeleteAsync($"courses/{c.Id}");
+            Snackbar.Add("Curso eliminado", Severity.Warning);
+            _courses = await ApiService.GetListAsync<CourseDto>("courses");
+        }
+    }
+}

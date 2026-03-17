@@ -1,0 +1,104 @@
+@inject IApiService ApiService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudDialog Class="login-dialog">
+    <DialogContent>
+        <div class="login-dialog-header">
+            <MudIcon Icon="@Icons.Material.Filled.School" Style="font-size: 3rem; color: white; margin-bottom: 8px;" />
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: white;">EduCore</MudText>
+            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.8);">
+                Ingresa tus credenciales para continuar
+            </MudText>
+        </div>
+
+        <div class="login-dialog-body">
+            <EditForm Model="@_loginModel" OnValidSubmit="HandleLogin">
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_loginModel.Email" Label="Correo Electronico"
+                                  Variant="Variant.Outlined" InputType="InputType.Email"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email"
+                                  Required="true" RequiredError="El correo es requerido" />
+
+                    <MudTextField @bind-Value="_loginModel.Password" Label="Contrasena"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="() => _showPassword = !_showPassword"
+                                  Required="true" RequiredError="La contrasena es requerida" />
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+                            @_errorMessage
+                        </MudAlert>
+                    }
+
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                               Color="Color.Primary" FullWidth="true" Size="Size.Large"
+                               Disabled="@_loading"
+                               Style="height: 48px; font-weight: 600; background: linear-gradient(135deg, #1E3A5F, #4ECDC4); border-radius: 12px;">
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Color="Color.Surface" Indeterminate="true" Class="mr-2" />
+                            <span>Ingresando...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
+                            <span>Iniciar Sesion</span>
+                        }
+                    </MudButton>
+
+                    <MudStack Row="true" Justify="Justify.Center" Class="mt-1">
+                        <MudText Typo="Typo.caption" Style="color: #718096;">
+                            Demo: admin@educore.com / Admin123!
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+            </EditForm>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    private LoginRequestDto _loginModel = new();
+    private bool _loading;
+    private bool _showPassword;
+    private string? _errorMessage;
+
+    private async Task HandleLogin()
+    {
+        _loading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await ApiService.LoginAsync(_loginModel);
+            if (result.Success)
+            {
+                await AuthStateProvider.MarkUserAsAuthenticated(result.Token);
+                Snackbar.Add($"Bienvenido, {result.User.FullName}", Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+                Navigation.NavigateTo("/dashboard", forceLoad: false);
+            }
+            else
+            {
+                _errorMessage = result.ErrorMessage ?? "Error al iniciar sesion";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error de conexion: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

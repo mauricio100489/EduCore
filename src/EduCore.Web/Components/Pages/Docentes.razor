@@ -1,0 +1,98 @@
+@page "/docentes"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Docentes</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">
+        <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+        Docentes
+    </MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="OpenCreateDialog">Nuevo Docente</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@_teachers" Hover="true" Striped="true" Loading="@_loading" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh><MudTh>Identificacion</MudTh><MudTh>Email</MudTh>
+            <MudTh>Especialidad</MudTh><MudTh>Estado</MudTh><MudTh Style="text-align:center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Color="Color.Tertiary" Size="Size.Small">@context.FirstName[0]@context.LastName[0]</MudAvatar>
+                    @context.FullName
+                </MudStack>
+            </MudTd>
+            <MudTd>@context.IdentificationNumber</MudTd>
+            <MudTd>@context.Email</MudTd>
+            <MudTd>@context.Specialty</MudTd>
+            <MudTd><MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">@(context.IsActive ? "Activo" : "Inactivo")</MudChip></MudTd>
+            <MudTd Style="text-align:center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Delete(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager PageSizeOptions="new[]{10,25,50}" /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">@(_isEdit ? "Editar" : "Nuevo") Docente</MudText></TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.FirstName" Label="Nombres" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.LastName" Label="Apellidos" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.IdentificationNumber" Label="Identificacion" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.Email" Label="Email" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.Phone" Label="Telefono" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.Specialty" Label="Especialidad" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_model.Degree" Label="Titulo" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudDatePicker @bind-Date="_hireDate" Label="Fecha Contratacion" Variant="Variant.Outlined" /></MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@_saving">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<TeacherDto> _teachers = new();
+    private TeacherDto _model = new();
+    private bool _loading = true, _dialogVisible, _isEdit, _saving;
+    private DateTime? _hireDate;
+
+    protected override async Task OnInitializedAsync() { _loading = true; _teachers = await ApiService.GetListAsync<TeacherDto>("teachers"); _loading = false; }
+
+    private void OpenCreateDialog() { _model = new TeacherDto { IsActive = true }; _hireDate = DateTime.Now; _isEdit = false; _dialogVisible = true; }
+
+    private void OpenEditDialog(TeacherDto t) {
+        _model = new TeacherDto { Id = t.Id, FirstName = t.FirstName, LastName = t.LastName, IdentificationNumber = t.IdentificationNumber, Email = t.Email, Phone = t.Phone, Specialty = t.Specialty, Degree = t.Degree, HireDate = t.HireDate, IsActive = t.IsActive };
+        _hireDate = t.HireDate; _isEdit = true; _dialogVisible = true;
+    }
+
+    private async Task Save() {
+        _saving = true;
+        try {
+            if (_hireDate.HasValue) _model.HireDate = _hireDate.Value;
+            if (_isEdit) await ApiService.PutAsync($"teachers/{_model.Id}", _model);
+            else await ApiService.PostAsync<TeacherDto>("teachers", _model);
+            Snackbar.Add(_isEdit ? "Docente actualizado" : "Docente creado", Severity.Success);
+            _dialogVisible = false; _teachers = await ApiService.GetListAsync<TeacherDto>("teachers");
+        } catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task Delete(TeacherDto t) {
+        if (await DialogService.ShowMessageBoxAsync("Confirmar", $"Desactivar a {t.FullName}?", yesText: "Si", cancelText: "No") == true) {
+            await ApiService.DeleteAsync($"teachers/{t.Id}");
+            Snackbar.Add("Docente desactivado", Severity.Warning);
+            _teachers = await ApiService.GetListAsync<TeacherDto>("teachers");
+        }
+    }
+}

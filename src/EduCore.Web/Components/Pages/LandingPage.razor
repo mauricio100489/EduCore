@@ -1,0 +1,314 @@
+@page "/"
+@attribute [AllowAnonymous]
+@layout EmptyLayout
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject CustomAuthStateProvider AuthStateProvider
+
+<PageTitle>EduCore - Sistema de Gestion Educativa</PageTitle>
+
+<MudThemeProvider Theme="@_landingTheme" />
+
+@* ===== TOP BAR ===== *@
+<div class="landing-topbar">
+    <div class="topbar-info">
+        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Style="color: #FFD54F;" />
+        <span>San Pedro Sula, Honduras</span>
+        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Style="color: #FFD54F;" Class="ml-4" />
+        <span>info@educore.com</span>
+        <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Style="color: #FFD54F;" Class="ml-4" />
+        <span>+504 2552-0000</span>
+    </div>
+    <div class="topbar-actions">
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" Class="topbar-btn"
+                   OnClick="OpenLoginDialog">
+            Iniciar Sesion
+        </MudButton>
+    </div>
+</div>
+
+@* ===== NAVBAR ===== *@
+<div class="landing-navbar">
+    <div class="navbar-brand">
+        <MudIcon Icon="@Icons.Material.Filled.School" Size="Size.Large" Style="color: #4ECDC4; font-size: 2.5rem;" />
+        <div class="brand-text">
+            <span class="brand-name">EduCore</span>
+            <span class="brand-tagline">Sistema de Gestion Educativa</span>
+        </div>
+    </div>
+    <div class="navbar-links">
+        <a href="#inicio" class="nav-link">Inicio</a>
+        <a href="#servicios" class="nav-link">Servicios</a>
+        <a href="#estadisticas" class="nav-link">Experiencia</a>
+        <a href="#nosotros" class="nav-link">Nosotros</a>
+        <a href="#contacto" class="nav-link">Contacto</a>
+    </div>
+    <MudButton Variant="Variant.Filled" Class="navbar-login-btn" OnClick="OpenLoginDialog"
+               StartIcon="@Icons.Material.Filled.Login">
+        Iniciar Sesion
+    </MudButton>
+</div>
+
+@* ===== HERO SECTION ===== *@
+<section id="inicio" class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="hero-title">Transformando la <span class="highlight">Educacion</span></h1>
+        <p class="hero-subtitle">
+            Plataforma integral para la gestion academica, administrativa y financiera de centros educativos.
+            Todo en un solo lugar.
+        </p>
+        <div class="hero-buttons">
+            <MudButton Variant="Variant.Filled" Size="Size.Large" Class="hero-btn-primary"
+                       OnClick="OpenLoginDialog"
+                       StartIcon="@Icons.Material.Filled.RocketLaunch">
+                Comenzar Ahora
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Size="Size.Large" Class="hero-btn-secondary"
+                       Href="#servicios"
+                       StartIcon="@Icons.Material.Filled.Info">
+                Conocer Mas
+            </MudButton>
+        </div>
+        <div class="hero-stats-mini">
+            <div class="hero-stat-item">
+                <span class="hero-stat-num">500+</span>
+                <span class="hero-stat-label">Estudiantes</span>
+            </div>
+            <div class="hero-stat-item">
+                <span class="hero-stat-num">50+</span>
+                <span class="hero-stat-label">Docentes</span>
+            </div>
+            <div class="hero-stat-item">
+                <span class="hero-stat-num">15+</span>
+                <span class="hero-stat-label">Anos</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-decoration">
+        <div class="floating-card fc-1">
+            <MudIcon Icon="@Icons.Material.Filled.MenuBook" Style="font-size: 2rem; color: #4ECDC4;" />
+            <span>Matriculas</span>
+        </div>
+        <div class="floating-card fc-2">
+            <MudIcon Icon="@Icons.Material.Filled.Grade" Style="font-size: 2rem; color: #FF6B35;" />
+            <span>Calificaciones</span>
+        </div>
+        <div class="floating-card fc-3">
+            <MudIcon Icon="@Icons.Material.Filled.Payments" Style="font-size: 2rem; color: #48BB78;" />
+            <span>Facturacion</span>
+        </div>
+    </div>
+</section>
+
+@* ===== FEATURES / SERVICES ===== *@
+<section id="servicios" class="features-section">
+    <div class="section-header">
+        <h2 class="section-title">Nuestros <span class="highlight">Servicios</span></h2>
+        <p class="section-subtitle">Todo lo que necesitas para gestionar tu centro educativo de manera eficiente</p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-card" style="--card-color: #4ECDC4;">
+            <div class="feature-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Style="font-size: 2.5rem; color: white;" />
+            </div>
+            <h3>Matricula de Alumnos</h3>
+            <p>Proceso de matricula digital completo, desde inscripcion hasta asignacion de secciones y grados.</p>
+        </div>
+        <div class="feature-card" style="--card-color: #FF6B35;">
+            <div class="feature-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.Assessment" Style="font-size: 2.5rem; color: white;" />
+            </div>
+            <h3>Registro de Notas</h3>
+            <p>Gestion de calificaciones por periodo, parcial y asignatura con reportes automatizados.</p>
+        </div>
+        <div class="feature-card" style="--card-color: #7C5CFC;">
+            <div class="feature-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.Receipt" Style="font-size: 2.5rem; color: white;" />
+            </div>
+            <h3>Facturacion y Pagos</h3>
+            <p>Control financiero completo: facturacion, recibos, estado de cuenta y control de morosidad.</p>
+        </div>
+        <div class="feature-card" style="--card-color: #F56565;">
+            <div class="feature-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.SupervisedUserCircle" Style="font-size: 2.5rem; color: white;" />
+            </div>
+            <h3>Gestion de Docentes</h3>
+            <p>Administracion de personal docente, asignacion de materias y seguimiento de desempeno.</p>
+        </div>
+        <div class="feature-card" style="--card-color: #ECC94B;">
+            <div class="feature-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.BarChart" Style="font-size: 2.5rem; color: white;" />
+            </div>
+            <h3>Reportes y Estadisticas</h3>
+            <p>Dashboard interactivo con indicadores clave, graficas y reportes exportables.</p>
+        </div>
+        <div class="feature-card" style="--card-color: #4299E1;">
+            <div class="feature-icon-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.Security" Style="font-size: 2.5rem; color: white;" />
+            </div>
+            <h3>Seguridad y Roles</h3>
+            <p>Sistema de permisos granular con roles personalizados para cada tipo de usuario.</p>
+        </div>
+    </div>
+</section>
+
+@* ===== STATS SECTION ===== *@
+<section id="estadisticas" class="stats-section">
+    <div class="stats-overlay"></div>
+    <div class="section-header" style="position: relative; z-index: 1;">
+        <h2 class="section-title" style="color: white;">Anos de <span class="highlight">Experiencia</span></h2>
+        <p class="section-subtitle" style="color: rgba(255,255,255,0.8);">Numeros que respaldan nuestra trayectoria</p>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-item">
+            <MudIcon Icon="@Icons.Material.Filled.Groups" Style="font-size: 3rem; color: #4ECDC4;" />
+            <span class="stat-number">500+</span>
+            <span class="stat-label">Estudiantes Activos</span>
+        </div>
+        <div class="stat-item">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Style="font-size: 3rem; color: #FFD54F;" />
+            <span class="stat-number">3,000+</span>
+            <span class="stat-label">Graduados Exitosos</span>
+        </div>
+        <div class="stat-item">
+            <MudIcon Icon="@Icons.Material.Filled.Favorite" Style="font-size: 3rem; color: #F56565;" />
+            <span class="stat-number">2,500+</span>
+            <span class="stat-label">Padres Satisfechos</span>
+        </div>
+        <div class="stat-item">
+            <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Style="font-size: 3rem; color: #FF6B35;" />
+            <span class="stat-number">50+</span>
+            <span class="stat-label">Docentes Certificados</span>
+        </div>
+    </div>
+</section>
+
+@* ===== ABOUT SECTION ===== *@
+<section id="nosotros" class="about-section">
+    <div class="section-header">
+        <h2 class="section-title">Sobre <span class="highlight">Nosotros</span></h2>
+    </div>
+    <div class="about-grid">
+        <div class="about-card">
+            <div class="about-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Flag" Style="font-size: 3rem; color: #7C5CFC;" />
+            </div>
+            <h3>Mision</h3>
+            <p>Proveer una formacion integral de calidad, desarrollando en cada estudiante competencias academicas, valores eticos y habilidades para la vida, en un ambiente innovador y personalizado.</p>
+        </div>
+        <div class="about-card">
+            <div class="about-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Style="font-size: 3rem; color: #4ECDC4;" />
+            </div>
+            <h3>Vision</h3>
+            <p>Ser una institucion educativa lider en excelencia academica, reconocida por la formacion de ciudadanos competentes, responsables y comprometidos con el desarrollo de la sociedad.</p>
+        </div>
+        <div class="about-card">
+            <div class="about-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Diamond" Style="font-size: 3rem; color: #FF6B35;" />
+            </div>
+            <h3>Valores</h3>
+            <div class="values-list">
+                <span class="value-tag">Responsabilidad</span>
+                <span class="value-tag">Honestidad</span>
+                <span class="value-tag">Respeto</span>
+                <span class="value-tag">Excelencia</span>
+                <span class="value-tag">Compromiso</span>
+                <span class="value-tag">Solidaridad</span>
+                <span class="value-tag">Tolerancia</span>
+                <span class="value-tag">Amor</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ===== CONTACT / CTA ===== *@
+<section id="contacto" class="cta-section">
+    <div class="cta-content">
+        <h2>Listo para <span class="highlight">Transformar</span> tu Institucion?</h2>
+        <p>Inicia sesion y descubre todas las herramientas que EduCore tiene para ti.</p>
+        <MudButton Variant="Variant.Filled" Size="Size.Large" Class="cta-btn"
+                   OnClick="OpenLoginDialog"
+                   StartIcon="@Icons.Material.Filled.Login">
+            Iniciar Sesion
+        </MudButton>
+    </div>
+</section>
+
+@* ===== FOOTER ===== *@
+<footer class="landing-footer">
+    <div class="footer-content">
+        <div class="footer-brand">
+            <MudIcon Icon="@Icons.Material.Filled.School" Style="font-size: 2rem; color: #4ECDC4;" />
+            <span class="footer-brand-name">EduCore</span>
+            <p class="footer-desc">Sistema integral de gestion educativa para centros de ensenanza modernos.</p>
+        </div>
+        <div class="footer-links">
+            <h4>Enlaces</h4>
+            <a href="#inicio">Inicio</a>
+            <a href="#servicios">Servicios</a>
+            <a href="#nosotros">Nosotros</a>
+            <a href="#contacto">Contacto</a>
+        </div>
+        <div class="footer-links">
+            <h4>Plataforma</h4>
+            <a href="javascript:void(0)" @onclick="OpenLoginDialog">Iniciar Sesion</a>
+            <a href="#servicios">Matriculas</a>
+            <a href="#servicios">Calificaciones</a>
+            <a href="#servicios">Facturacion</a>
+        </div>
+        <div class="footer-links">
+            <h4>Contacto</h4>
+            <span>info@educore.com</span>
+            <span>+504 2552-0000</span>
+            <span>San Pedro Sula, Honduras</span>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>Copyright &copy; @DateTime.Now.Year EduCore. Todos los derechos reservados.</span>
+    </div>
+</footer>
+
+@code {
+    private readonly MudTheme _landingTheme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#1E3A5F",
+            Secondary = "#FF6B35",
+            Tertiary = "#4ECDC4",
+            Background = "#FFFFFF",
+            Surface = "#FFFFFF",
+            TextPrimary = "#2D3748",
+            TextSecondary = "#718096"
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography() { FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" } }
+        }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthStateProvider.MarkUserAsLoggedOut();
+        }
+    }
+
+    private async Task OpenLoginDialog()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = false,
+            NoHeader = true,
+            BackdropClick = true
+        };
+
+        await DialogService.ShowAsync<LoginDialog>("Iniciar Sesion", options);
+    }
+}

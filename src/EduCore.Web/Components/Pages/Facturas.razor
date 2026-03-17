@@ -1,0 +1,284 @@
+@page "/facturas"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Facturacion</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">
+        <MudIcon Icon="@Icons.Material.Filled.Receipt" Class="mr-2" />
+        Facturacion
+    </MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">
+        Nueva Factura
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@_invoices" Hover="true" Striped="true" Loading="@_loading"
+              LoadingProgressColor="Color.Primary" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>No. Factura</MudTh>
+            <MudTh>Estudiante</MudTh>
+            <MudTh>Periodo</MudTh>
+            <MudTh>Emision</MudTh>
+            <MudTh>Vencimiento</MudTh>
+            <MudTh>Total</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align: center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="No. Factura">
+                <MudText Style="font-weight: 600;">@context.InvoiceNumber</MudText>
+            </MudTd>
+            <MudTd DataLabel="Estudiante">@context.StudentName</MudTd>
+            <MudTd DataLabel="Periodo">@context.AcademicPeriodName</MudTd>
+            <MudTd DataLabel="Emision">@context.IssueDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Vencimiento">@context.DueDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Total">
+                <MudText Style="font-weight: 700;" Color="Color.Primary">$@context.Total.ToString("N2")</MudText>
+            </MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Size="Size.Small"
+                         Color="@(context.Status == EduCore.Domain.Enums.PaymentStatus.Paid ? Color.Success :
+                                  context.Status == EduCore.Domain.Enums.PaymentStatus.Pending ? Color.Warning :
+                                  context.Status == EduCore.Domain.Enums.PaymentStatus.Overdue ? Color.Error : Color.Default)">
+                    @context.Status
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Payment" Color="Color.Success" Size="Size.Small"
+                               OnClick="@(() => OpenPaymentDialog(context))" Title="Registrar Pago" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(context))" Title="Editar" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteInvoice(context))" Title="Eliminar" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Align="Align.Center" Class="pa-4">No se encontraron facturas</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? "Editar Factura" : "Nueva Factura")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.InvoiceNumber" Label="No. Factura" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.StudentId" Label="Estudiante" Variant="Variant.Outlined" Required="true">
+                    @foreach (var s in _students) { <MudSelectItem Value="@s.Id">@s.FullName</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.AcademicPeriodId" Label="Periodo" Variant="Variant.Outlined" Required="true">
+                    @foreach (var p in _periods) { <MudSelectItem Value="@p.Id">@p.Name (@p.Year)</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_dueDate" Label="Fecha Vencimiento" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.Subtotal" Label="Subtotal" Variant="Variant.Outlined" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.Tax" Label="Impuesto" Variant="Variant.Outlined" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.Discount" Label="Descuento" Variant="Variant.Outlined" Format="N2" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    Total: $@((_model.Subtotal + _model.Tax - _model.Discount).ToString("N2"))
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Detalle de Factura</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" OnClick="AddDetail" />
+                </MudStack>
+            </MudItem>
+            @for (int i = 0; i < _model.Details.Count; i++)
+            {
+                var idx = i;
+                <MudItem xs="12" md="5">
+                    <MudTextField @bind-Value="_model.Details[idx].Concept" Label="Concepto" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="5" md="3">
+                    <MudNumericField @bind-Value="_model.Details[idx].Quantity" Label="Cant" Variant="Variant.Outlined" Min="1" />
+                </MudItem>
+                <MudItem xs="5" md="3">
+                    <MudNumericField @bind-Value="_model.Details[idx].UnitPrice" Label="Precio" Variant="Variant.Outlined" Format="N2" />
+                </MudItem>
+                <MudItem xs="2" md="1" Class="d-flex align-center">
+                    <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => _model.Details.RemoveAt(idx))" />
+                </MudItem>
+            }
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Notes" Label="Notas" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInvoice" Disabled="@_saving">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_paymentDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
+            Registrar Pago
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Factura: @_selectedInvoice?.InvoiceNumber - Total: $@(_selectedInvoice?.Total.ToString("N2"))
+                </MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_payment.Amount" Label="Monto" Variant="Variant.Outlined" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_payment.Method" Label="Metodo de Pago" Variant="Variant.Outlined">
+                    @foreach (EduCore.Domain.Enums.PaymentMethod m in Enum.GetValues<EduCore.Domain.Enums.PaymentMethod>())
+                    { <MudSelectItem Value="@m">@m</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_payment.ReferenceNumber" Label="No. Referencia" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_payment.Notes" Label="Notas" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _paymentDialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SavePayment" Disabled="@_saving">
+            Registrar Pago
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<InvoiceDto> _invoices = new();
+    private List<StudentDto> _students = new();
+    private List<AcademicPeriodDto> _periods = new();
+    private InvoiceDto _model = new();
+    private InvoiceDto? _selectedInvoice;
+    private PaymentDto _payment = new();
+    private bool _loading = true, _dialogVisible, _paymentDialogVisible, _isEdit, _saving;
+    private DateTime? _dueDate;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _invoices = await ApiService.GetListAsync<InvoiceDto>("invoices");
+            _students = await ApiService.GetListAsync<StudentDto>("students");
+            _periods = await ApiService.GetListAsync<AcademicPeriodDto>("academicperiods");
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _model = new InvoiceDto { IssueDate = DateTime.Now, Status = EduCore.Domain.Enums.PaymentStatus.Pending };
+        _dueDate = DateTime.Now.AddDays(30);
+        _isEdit = false;
+        _dialogVisible = true;
+    }
+
+    private void OpenEditDialog(InvoiceDto invoice)
+    {
+        _model = new InvoiceDto
+        {
+            Id = invoice.Id, InvoiceNumber = invoice.InvoiceNumber, StudentId = invoice.StudentId,
+            AcademicPeriodId = invoice.AcademicPeriodId, IssueDate = invoice.IssueDate,
+            DueDate = invoice.DueDate, Subtotal = invoice.Subtotal, Tax = invoice.Tax,
+            Discount = invoice.Discount, Status = invoice.Status, Notes = invoice.Notes,
+            Details = invoice.Details.Select(d => new InvoiceDetailDto
+            {
+                Id = d.Id, Concept = d.Concept, Description = d.Description,
+                Quantity = d.Quantity, UnitPrice = d.UnitPrice
+            }).ToList()
+        };
+        _dueDate = invoice.DueDate;
+        _isEdit = true;
+        _dialogVisible = true;
+    }
+
+    private void AddDetail() => _model.Details.Add(new InvoiceDetailDto { Quantity = 1 });
+
+    private async Task SaveInvoice()
+    {
+        _saving = true;
+        try
+        {
+            if (_dueDate.HasValue) _model.DueDate = _dueDate.Value;
+            if (_isEdit) await ApiService.PutAsync($"invoices/{_model.Id}", _model);
+            else await ApiService.PostAsync<InvoiceDto>("invoices", _model);
+            Snackbar.Add(_isEdit ? "Factura actualizada" : "Factura creada", Severity.Success);
+            _dialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private void OpenPaymentDialog(InvoiceDto invoice)
+    {
+        _selectedInvoice = invoice;
+        _payment = new PaymentDto { InvoiceId = invoice.Id, PaymentDate = DateTime.Now, Amount = invoice.Total };
+        _paymentDialogVisible = true;
+    }
+
+    private async Task SavePayment()
+    {
+        _saving = true;
+        try
+        {
+            await ApiService.PostAsync<PaymentDto>("invoices/payment", _payment);
+            Snackbar.Add("Pago registrado exitosamente", Severity.Success);
+            _paymentDialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteInvoice(InvoiceDto invoice)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync("Confirmar",
+            $"Desea eliminar la factura {invoice.InvoiceNumber}?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            await ApiService.DeleteAsync($"invoices/{invoice.Id}");
+            Snackbar.Add("Factura eliminada", Severity.Warning);
+            await LoadData();
+        }
+    }
+}

@@ -1,0 +1,200 @@
+@page "/dashboard"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+
+<PageTitle>EduCore - Dashboard</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+    Panel de Control
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+}
+else
+{
+    <MudGrid Spacing="4" Class="fade-in">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 stat-card" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">ESTUDIANTES</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@_dashboard.TotalStudents</MudText>
+                    </MudStack>
+                    <MudAvatar Color="Color.Primary" Size="Size.Large" Variant="Variant.Outlined">
+                        <MudIcon Icon="@Icons.Material.Filled.People" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 stat-card" Elevation="3" Style="border-left: 4px solid var(--mud-palette-secondary);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">MATRICULAS ACTIVAS</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@_dashboard.ActiveEnrollments</MudText>
+                    </MudStack>
+                    <MudAvatar Color="Color.Secondary" Size="Size.Large" Variant="Variant.Outlined">
+                        <MudIcon Icon="@Icons.Material.Filled.AppRegistration" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 stat-card" Elevation="3" Style="border-left: 4px solid var(--mud-palette-tertiary);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">DOCENTES</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">@_dashboard.TotalTeachers</MudText>
+                    </MudStack>
+                    <MudAvatar Color="Color.Tertiary" Size="Size.Large" Variant="Variant.Outlined">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 stat-card" Elevation="3" Style="border-left: 4px solid var(--mud-palette-success);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">INGRESOS</MudText>
+                        <MudText Typo="Typo.h4" Style="font-weight: 700;">$@_dashboard.TotalRevenue.ToString("N0")</MudText>
+                    </MudStack>
+                    <MudAvatar Color="Color.Success" Size="Size.Large" Variant="Variant.Outlined">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="4" Class="mt-4 fade-in">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.BarChart" Class="mr-1" />
+                    Ingresos Mensuales
+                </MudText>
+                @if (_dashboard.MonthlyRevenue.Any())
+                {
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_revenueSeries"
+                              XAxisLabels="@_revenueLabels" Width="100%" Height="300px"
+                              />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        No hay datos de ingresos para mostrar
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.PieChart" Class="mr-1" />
+                    Matriculas por Nivel
+                </MudText>
+                @if (_dashboard.EnrollmentsByGrade.Any())
+                {
+                    <MudChart T="double" ChartType="ChartType.Donut"
+                              InputData="@_enrollmentData" InputLabels="@_enrollmentLabels"
+                              Width="100%" Height="300px" />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        No hay datos de matriculas para mostrar
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="4" Class="mt-4 fade-in">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-1" />
+                        Pagos Pendientes
+                    </MudText>
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">
+                        $@_dashboard.PendingPayments.ToString("N2")
+                    </MudChip>
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Total de pagos pendientes de cobro en el periodo actual.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Class" Color="Color.Info" Class="mr-1" />
+                        Cursos Activos
+                    </MudText>
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">
+                        @_dashboard.TotalCourses
+                    </MudChip>
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Total de cursos activos en el periodo academico vigente.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private DashboardDto _dashboard = new();
+    private bool _loading = true;
+    private List<ChartSeries<double>> _revenueSeries = new();
+    private string[] _revenueLabels = Array.Empty<string>();
+    private double[] _enrollmentData = Array.Empty<double>();
+    private string[] _enrollmentLabels = Array.Empty<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _dashboard = await ApiService.GetDashboardAsync();
+            PrepareCharts();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar el dashboard: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void PrepareCharts()
+    {
+        if (_dashboard.MonthlyRevenue.Any())
+        {
+            _revenueLabels = _dashboard.MonthlyRevenue.Select(m => m.Month).ToArray();
+            _revenueSeries = new List<ChartSeries<double>>
+            {
+                new() { Name = "Ingresos", Data = _dashboard.MonthlyRevenue.Select(m => (double)m.Amount).ToArray() }
+            };
+        }
+
+        if (_dashboard.EnrollmentsByGrade.Any())
+        {
+            _enrollmentLabels = _dashboard.EnrollmentsByGrade.Select(e => e.GradeLevel).ToArray();
+            _enrollmentData = _dashboard.EnrollmentsByGrade.Select(e => (double)e.Count).ToArray();
+        }
+    }
+}

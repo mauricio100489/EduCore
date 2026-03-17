@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(ls *.sln)",
+      "Bash(dotnet add:*)",
+      "Bash(dotnet build:*)",
+      "Read(//c/Users/jose.calderon/.nuget/packages/mudblazor/9.1.0/**)",
+      "Bash(2)",
+      "Bash(dotnet ef:*)",
+      "Bash(dotnet tool:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(dir /b \"C:\\\\Users\\\\jose.calderon\\\\source\\\\repos\\\\mauricio100489\\\\EduCore\\\\src\\\\EduCore.Domain\\\\Entities\\\\Institute*.cs\")",
+      "Bash(del \"C:\\\\Users\\\\jose.calderon\\\\EduCoreDb.mdf\")",
+      "Bash(del \"C:\\\\Users\\\\jose.calderon\\\\EduCoreDb_log.ldf\")"
+    ]
+  }
+}

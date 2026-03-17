@@ -1,0 +1,51 @@
+@inject NavigationManager Navigation
+
+<MudNavMenu Bordered="true" Color="Color.Primary" Class="mt-2">
+    <MudNavLink Href="/dashboard" Match="NavLinkMatch.All"
+                Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Tertiary">
+        Dashboard
+    </MudNavLink>
+
+    <MudNavGroup Title="Academico" Icon="@Icons.Material.Filled.MenuBook" IconColor="Color.Info"
+                 Expanded="true">
+        <MudNavLink Href="/estudiantes" Icon="@Icons.Material.Filled.People" IconColor="Color.Primary">
+            Estudiantes
+        </MudNavLink>
+        <MudNavLink Href="/matriculas" Icon="@Icons.Material.Filled.AppRegistration" IconColor="Color.Secondary">
+            Matriculas
+        </MudNavLink>
+        <MudNavLink Href="/notas" Icon="@Icons.Material.Filled.Grading" IconColor="Color.Success">
+            Registro de Notas
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Administracion" Icon="@Icons.Material.Filled.AdminPanelSettings" IconColor="Color.Warning"
+                 Expanded="false">
+        <MudNavLink Href="/docentes" Icon="@Icons.Material.Filled.Person" IconColor="Color.Primary">
+            Docentes
+        </MudNavLink>
+        <MudNavLink Href="/cursos" Icon="@Icons.Material.Filled.Class" IconColor="Color.Info">
+            Cursos
+        </MudNavLink>
+        <MudNavLink Href="/niveles" Icon="@Icons.Material.Filled.Layers" IconColor="Color.Tertiary">
+            Niveles / Grados
+        </MudNavLink>
+        <MudNavLink Href="/periodos" Icon="@Icons.Material.Filled.CalendarMonth" IconColor="Color.Secondary">
+            Periodos Academicos
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Facturacion" Icon="@Icons.Material.Filled.Receipt" IconColor="Color.Success"
+                 Expanded="false">
+        <MudNavLink Href="/facturas" Icon="@Icons.Material.Filled.Description" IconColor="Color.Warning">
+            Facturas
+        </MudNavLink>
+        <MudNavLink Href="/pagos" Icon="@Icons.Material.Filled.Payment" IconColor="Color.Success">
+            Pagos
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavLink Href="/configuracion" Icon="@Icons.Material.Filled.Settings" IconColor="Color.Default">
+        Configuracion
+    </MudNavLink>
+</MudNavMenu>

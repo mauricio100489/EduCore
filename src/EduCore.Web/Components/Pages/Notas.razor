@@ -1,0 +1,230 @@
+@page "/notas"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Registro de Notas</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">
+        <MudIcon Icon="@Icons.Material.Filled.Grading" Class="mr-2" />
+        Registro de Notas
+    </MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">
+        Registrar Nota
+    </MudButton>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="4">
+            <MudSelect T="int?" Value="_filterStudentId" Label="Filtrar por Estudiante" Variant="Variant.Outlined"
+                       Clearable="true" ValueChanged="@(async (int? v) => { _filterStudentId = v; await FilterGrades(); })">
+                @foreach (var s in _students)
+                {
+                    <MudSelectItem Value="@((int?)s.Id)">@s.FullName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="int?" Value="_filterCourseId" Label="Filtrar por Curso" Variant="Variant.Outlined"
+                       Clearable="true" ValueChanged="@(async (int? v) => { _filterCourseId = v; await FilterGrades(); })">
+                @foreach (var c in _courses)
+                {
+                    <MudSelectItem Value="@((int?)c.Id)">@c.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ClearFilters" FullWidth="true">
+                Limpiar Filtros
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@_filteredGrades" Hover="true" Striped="true" Loading="@_loading"
+              LoadingProgressColor="Color.Primary" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Estudiante</MudTh>
+            <MudTh>Curso</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Nota</MudTh>
+            <MudTh>Max</MudTh>
+            <MudTh>%</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh Style="text-align: center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Estudiante">@context.StudentName</MudTd>
+            <MudTd DataLabel="Curso">@context.CourseName</MudTd>
+            <MudTd DataLabel="Tipo">
+                <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Type</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Nota">
+                <MudText Color="@(context.Percentage >= 70 ? Color.Success : context.Percentage >= 50 ? Color.Warning : Color.Error)"
+                         Style="font-weight: 600;">
+                    @context.Score
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Max">@context.MaxScore</MudTd>
+            <MudTd DataLabel="%">
+                <MudProgressLinear Color="@(context.Percentage >= 70 ? Color.Success : context.Percentage >= 50 ? Color.Warning : Color.Error)"
+                                   Value="@((double)context.Percentage)" Class="my-1" Style="min-width: 80px;" />
+                <MudText Typo="Typo.caption">@context.Percentage.ToString("N1")%</MudText>
+            </MudTd>
+            <MudTd DataLabel="Fecha">@context.GradeDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteGrade(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Align="Align.Center" Class="pa-4">No se encontraron notas</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? "Editar Nota" : "Registrar Nota")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_model.StudentId" Label="Estudiante" Variant="Variant.Outlined" Required="true">
+                    @foreach (var s in _students) { <MudSelectItem Value="@s.Id">@s.FullName</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_model.CourseId" Label="Curso" Variant="Variant.Outlined" Required="true">
+                    @foreach (var c in _courses) { <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_model.AcademicPeriodId" Label="Periodo" Variant="Variant.Outlined" Required="true">
+                    @foreach (var p in _periods) { <MudSelectItem Value="@p.Id">@p.Name (@p.Year)</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.Type" Label="Tipo" Variant="Variant.Outlined">
+                    @foreach (EduCore.Domain.Enums.GradeType t in Enum.GetValues<EduCore.Domain.Enums.GradeType>())
+                    { <MudSelectItem Value="@t">@t</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField @bind-Value="_model.Score" Label="Nota" Variant="Variant.Outlined" Min="0" Max="@_model.MaxScore" />
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField @bind-Value="_model.MaxScore" Label="Max" Variant="Variant.Outlined" Min="1" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description" Label="Descripcion" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Observations" Label="Observaciones" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveGrade" Disabled="@_saving">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<GradeDto> _grades = new(), _filteredGrades = new();
+    private List<StudentDto> _students = new();
+    private List<CourseDto> _courses = new();
+    private List<AcademicPeriodDto> _periods = new();
+    private GradeDto _model = new();
+    private bool _loading = true, _dialogVisible, _isEdit, _saving;
+    private int? _filterStudentId, _filterCourseId;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _grades = await ApiService.GetListAsync<GradeDto>("grades");
+            _students = await ApiService.GetListAsync<StudentDto>("students");
+            _courses = await ApiService.GetListAsync<CourseDto>("courses");
+            _periods = await ApiService.GetListAsync<AcademicPeriodDto>("academicperiods");
+            _filteredGrades = _grades;
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private Task FilterGrades()
+    {
+        _filteredGrades = _grades.Where(g =>
+            (!_filterStudentId.HasValue || g.StudentId == _filterStudentId) &&
+            (!_filterCourseId.HasValue || g.CourseId == _filterCourseId)).ToList();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ClearFilters()
+    {
+        _filterStudentId = null; _filterCourseId = null;
+        _filteredGrades = _grades;
+    }
+
+    private void OpenCreateDialog()
+    {
+        _model = new GradeDto { MaxScore = 100, GradeDate = DateTime.Now };
+        _isEdit = false;
+        _dialogVisible = true;
+    }
+
+    private void OpenEditDialog(GradeDto grade)
+    {
+        _model = new GradeDto
+        {
+            Id = grade.Id, StudentId = grade.StudentId, CourseId = grade.CourseId,
+            AcademicPeriodId = grade.AcademicPeriodId, Type = grade.Type,
+            Description = grade.Description, Score = grade.Score, MaxScore = grade.MaxScore,
+            GradeDate = grade.GradeDate, Observations = grade.Observations
+        };
+        _isEdit = true;
+        _dialogVisible = true;
+    }
+
+    private async Task SaveGrade()
+    {
+        _saving = true;
+        try
+        {
+            if (_isEdit) await ApiService.PutAsync($"grades/{_model.Id}", _model);
+            else await ApiService.PostAsync<GradeDto>("grades", _model);
+            Snackbar.Add(_isEdit ? "Nota actualizada" : "Nota registrada", Severity.Success);
+            _dialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteGrade(GradeDto grade)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync("Confirmar",
+            "Desea eliminar esta nota?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            await ApiService.DeleteAsync($"grades/{grade.Id}");
+            Snackbar.Add("Nota eliminada", Severity.Warning);
+            await LoadData();
+        }
+    }
+}

@@ -1,0 +1,43 @@
+@page "/pagos"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+
+<PageTitle>EduCore - Historial de Pagos</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
+    Historial de Pagos
+</MudText>
+
+<MudPaper Elevation="2" Class="fade-in">
+    <MudTable Items="@_invoices.Where(i => i.Payments.Any()).SelectMany(i => i.Payments.Select(p => new { Invoice = i, Payment = p }))"
+              Hover="true" Striped="true" Loading="@_loading" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Factura</MudTh><MudTh>Estudiante</MudTh><MudTh>Monto</MudTh>
+            <MudTh>Fecha</MudTh><MudTh>Metodo</MudTh><MudTh>Referencia</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Invoice.InvoiceNumber</MudTd>
+            <MudTd>@context.Invoice.StudentName</MudTd>
+            <MudTd><MudText Color="Color.Success" Style="font-weight: 700;">$@context.Payment.Amount.ToString("N2")</MudText></MudTd>
+            <MudTd>@context.Payment.PaymentDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Payment.Method</MudChip></MudTd>
+            <MudTd>@context.Payment.ReferenceNumber</MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText Align="Align.Center" Class="pa-4">No hay pagos registrados</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager PageSizeOptions="new[]{10,25,50}" /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<InvoiceDto> _invoices = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _invoices = await ApiService.GetListAsync<InvoiceDto>("invoices"); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+}

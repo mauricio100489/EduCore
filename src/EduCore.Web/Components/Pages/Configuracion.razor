@@ -1,0 +1,896 @@
+@page "/configuracion"
+@attribute [Authorize]
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>EduCore - Configuracion</PageTitle>
+
+<MudText Typo="Typo.h4" Style="font-weight: 700;" Class="mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+    Configuracion del Sistema
+</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4"
+         @bind-ActivePanelIndex="_activeTab">
+    <MudTabPanel Text="Institutos" Icon="@Icons.Material.Filled.Business">
+        @* ===== INSTITUTOS TAB ===== *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Institutos Registrados</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateInstitute" Size="Size.Small">Nuevo Instituto</MudButton>
+        </MudStack>
+        <MudTable Items="@_institutes" Hover="true" Striped="true" Loading="@_loadingInstitutes" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Codigo</MudTh>
+                <MudTh>Nombre</MudTh>
+                <MudTh>RTN</MudTh>
+                <MudTh>Director</MudTh>
+                <MudTh>Telefonos</MudTh>
+                <MudTh Style="text-align:center;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Code</MudTd>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.Rtn</MudTd>
+                <MudTd>@context.Director</MudTd>
+                <MudTd>@context.Phones</MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                   OnClick="@(() => OpenEditInstitute(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteInstitute(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText>No hay institutos registrados</MudText></NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Periodos" Icon="@Icons.Material.Filled.CalendarMonth">
+        @* ===== PERIODOS TAB ===== *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">Periodos Academicos</MudText>
+                <MudSelect T="int" Label="Instituto" @bind-Value="_selectedInstituteForPeriods" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:250px;" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int" Value="0">-- Todos --</MudSelectItem>
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadPeriods" Color="Color.Primary" />
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreatePeriod" Size="Size.Small">Nuevo Periodo</MudButton>
+        </MudStack>
+        <MudTable Items="@_filteredPeriods" Hover="true" Striped="true" Loading="@_loadingPeriods" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Periodo</MudTh>
+                <MudTh>Instituto</MudTh>
+                <MudTh>Fecha Inicio</MudTh>
+                <MudTh>Fecha Fin</MudTh>
+                <MudTh>Promocion</MudTh>
+                <MudTh>Actual</MudTh>
+                <MudTh Style="text-align:center;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.PeriodName</MudTd>
+                <MudTd>@context.InstituteName</MudTd>
+                <MudTd>@context.StartDate?.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@context.EndDate?.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@context.PromotionName</MudTd>
+                <MudTd>
+                    @if (context.IsCurrent)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Si</MudChip>
+                    }
+                </MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                   OnClick="@(() => OpenEditPeriod(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeletePeriod(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText>No hay periodos registrados</MudText></NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Grados" Icon="@Icons.Material.Filled.Layers">
+        @* ===== GRADOS TAB ===== *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">Grados</MudText>
+                <MudSelect T="int" Label="Instituto" @bind-Value="_selectedInstituteForGrades" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int" Label="Periodo" @bind-Value="_selectedPeriodForGrades" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var p in _periods.Where(p => p.InstituteId == _selectedInstituteForGrades))
+                    {
+                        <MudSelectItem T="int" Value="@p.Id">@p.PeriodName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadGrades" Color="Color.Primary" />
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateGrade" Size="Size.Small">Nuevo Grado</MudButton>
+        </MudStack>
+        <MudTable Items="@_grades" Hover="true" Striped="true" Loading="@_loadingGrades" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Orden</MudTh>
+                <MudTh>Grado</MudTh>
+                <MudTh>Grado Oficial</MudTh>
+                <MudTh>Modalidad</MudTh>
+                <MudTh>Matricula</MudTh>
+                <MudTh>Mensualidad 12</MudTh>
+                <MudTh>Mensualidad 10</MudTh>
+                <MudTh Style="text-align:center;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Order</MudTd>
+                <MudTd>@context.GradeName</MudTd>
+                <MudTd>@context.OfficialGrade</MudTd>
+                <MudTd>@context.OfficialModality</MudTd>
+                <MudTd>@context.EnrollmentFee?.ToString("C")</MudTd>
+                <MudTd>@context.MonthlyFee12?.ToString("C")</MudTd>
+                <MudTd>@context.MonthlyFee10?.ToString("C")</MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                   OnClick="@(() => OpenEditGrade(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteGrade(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText>No hay grados registrados para este instituto/periodo</MudText></NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Jornadas" Icon="@Icons.Material.Filled.Schedule">
+        @* ===== JORNADAS TAB ===== *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">Jornadas</MudText>
+                <MudSelect T="int" Label="Instituto" @bind-Value="_selectedInstituteForShifts" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int" Label="Periodo" @bind-Value="_selectedPeriodForShifts" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var p in _periods.Where(p => p.InstituteId == _selectedInstituteForShifts))
+                    {
+                        <MudSelectItem T="int" Value="@p.Id">@p.PeriodName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadShifts" Color="Color.Primary" />
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateShift" Size="Size.Small">Nueva Jornada</MudButton>
+        </MudStack>
+        <MudTable Items="@_shifts" Hover="true" Striped="true" Loading="@_loadingShifts" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Orden</MudTh>
+                <MudTh>Jornada</MudTh>
+                <MudTh>Instituto</MudTh>
+                <MudTh>Periodo</MudTh>
+                <MudTh Style="text-align:center;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Order</MudTd>
+                <MudTd>@context.ShiftName</MudTd>
+                <MudTd>@context.InstituteName</MudTd>
+                <MudTd>@context.PeriodName</MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                   OnClick="@(() => OpenEditShift(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteShift(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText>No hay jornadas registradas</MudText></NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Secciones" Icon="@Icons.Material.Filled.ViewModule">
+        @* ===== SECCIONES TAB ===== *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">Secciones</MudText>
+                <MudSelect T="int" Label="Instituto" @bind-Value="_selectedInstituteForSections" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int" Label="Periodo" @bind-Value="_selectedPeriodForSections" Variant="Variant.Outlined"
+                           Dense="true" Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var p in _periods.Where(p => p.InstituteId == _selectedInstituteForSections))
+                    {
+                        <MudSelectItem T="int" Value="@p.Id">@p.PeriodName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadSections" Color="Color.Primary" />
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateSection" Size="Size.Small">Nueva Seccion</MudButton>
+        </MudStack>
+        <MudTable Items="@_sections" Hover="true" Striped="true" Loading="@_loadingSections" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Orden</MudTh>
+                <MudTh>Seccion</MudTh>
+                <MudTh>Instituto</MudTh>
+                <MudTh>Periodo</MudTh>
+                <MudTh Style="text-align:center;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Order</MudTd>
+                <MudTd>@context.SectionName</MudTd>
+                <MudTd>@context.InstituteName</MudTd>
+                <MudTd>@context.PeriodName</MudTd>
+                <MudTd Style="text-align:center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                   OnClick="@(() => OpenEditSection(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteSection(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText>No hay secciones registradas</MudText></NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@* ===== DIALOG: INSTITUTO ===== *@
+<MudDialog @bind-Visible="_showInstituteDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-2" />
+            @(_editingInstitute.Id == 0 ? "Nuevo Instituto" : "Editar Instituto")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_editingInstitute.Code" Label="Codigo" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_editingInstitute.Name" Label="Nombre" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingInstitute.Rtn" Label="RTN" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingInstitute.Phones" Label="Telefonos" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editingInstitute.Address" Label="Direccion" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingInstitute.Slogan" Label="Eslogan" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingInstitute.Director" Label="Director" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingInstitute.Secretary" Label="Secretario(a)" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showInstituteDialog = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInstitute" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* ===== DIALOG: PERIODO ===== *@
+<MudDialog @bind-Visible="_showPeriodDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Class="mr-2" />
+            @(_editingPeriod.Id == 0 ? "Nuevo Periodo" : "Editar Periodo")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="int" @bind-Value="_editingPeriod.InstituteId" Label="Instituto" Variant="Variant.Outlined" Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingPeriod.PeriodName" Label="Periodo (ej: 2025-2026)" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_editingPeriod.PromotionName" Label="Nombre Promocion" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_periodStartDate" Label="Fecha Inicio" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_periodEndDate" Label="Fecha Fin" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_editingPeriod.IsCurrent" Label="Es el periodo actual" Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showPeriodDialog = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SavePeriod" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* ===== DIALOG: GRADO ===== *@
+<MudDialog @bind-Visible="_showGradeDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Layers" Class="mr-2" />
+            @(_editingGrade.Id == 0 ? "Nuevo Grado" : "Editar Grado")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-3">
+            <MudTabPanel Text="Datos Generales" Icon="@Icons.Material.Filled.Info">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" @bind-Value="_editingGrade.InstituteId" Label="Instituto" Variant="Variant.Outlined" Required="true"
+                                   AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var inst in _institutes)
+                            {
+                                <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" @bind-Value="_editingGrade.PeriodId" Label="Periodo" Variant="Variant.Outlined" Required="true"
+                                   AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var p in _periods.Where(p => p.InstituteId == _editingGrade.InstituteId))
+                            {
+                                <MudSelectItem T="int" Value="@p.Id">@p.PeriodName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.GradeName" Label="Grado Instituto" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.OfficialGrade" Label="Grado Oficial" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.OfficialModality" Label="Modalidad Oficial" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField @bind-Value="_editingGrade.Order" Label="Orden" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudTextField @bind-Value="_editingGrade.EvaluationType" Label="Tipo Evaluacion" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            <MudTabPanel Text="Tarifas" Icon="@Icons.Material.Filled.AttachMoney">
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField @bind-Value="_editingGrade.EnrollmentFee" Label="Matricula" Variant="Variant.Outlined" Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField @bind-Value="_editingGrade.MonthlyFee12" Label="Mensualidad (12 meses)" Variant="Variant.Outlined" Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField @bind-Value="_editingGrade.MonthlyFee10" Label="Mensualidad (10 meses)" Variant="Variant.Outlined" Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_editingGrade.MaterialsFee" Label="Materiales/Libros" Variant="Variant.Outlined" Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_editingGrade.OtherFees" Label="Otros" Variant="Variant.Outlined" Format="N2" Adornment="Adornment.Start" AdornmentText="L" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            <MudTabPanel Text="Correo" Icon="@Icons.Material.Filled.Email">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.EmailSender" Label="Correo Remitente" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.EmailName" Label="Nombre Correo" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.SmtpServer" Label="Servidor SMTP" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField @bind-Value="_editingGrade.SmtpPort" Label="Puerto SMTP" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudTextField @bind-Value="_editingGrade.EmailTitle" Label="Titulo Correo" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            <MudTabPanel Text="Orientador" Icon="@Icons.Material.Filled.Person">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editingGrade.CounselorName" Label="Nombre Orientador" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_editingGrade.EducationLevelId" Label="ID Nivel Educativo" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showGradeDialog = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveGrade" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* ===== DIALOG: JORNADA ===== *@
+<MudDialog @bind-Visible="_showShiftDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="mr-2" />
+            @(_editingShift.Id == 0 ? "Nueva Jornada" : "Editar Jornada")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="int" @bind-Value="_editingShift.InstituteId" Label="Instituto" Variant="Variant.Outlined" Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="int" @bind-Value="_editingShift.PeriodId" Label="Periodo" Variant="Variant.Outlined" Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var p in _periods.Where(p => p.InstituteId == _editingShift.InstituteId))
+                    {
+                        <MudSelectItem T="int" Value="@p.Id">@p.PeriodName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_editingShift.ShiftName" Label="Nombre Jornada" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField @bind-Value="_editingShift.Order" Label="Orden" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showShiftDialog = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveShift" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* ===== DIALOG: SECCION ===== *@
+<MudDialog @bind-Visible="_showSectionDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.ViewModule" Class="mr-2" />
+            @(_editingSection.Id == 0 ? "Nueva Seccion" : "Editar Seccion")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="int" @bind-Value="_editingSection.InstituteId" Label="Instituto" Variant="Variant.Outlined" Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var inst in _institutes)
+                    {
+                        <MudSelectItem T="int" Value="@inst.Id">@inst.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="int" @bind-Value="_editingSection.PeriodId" Label="Periodo" Variant="Variant.Outlined" Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var p in _periods.Where(p => p.InstituteId == _editingSection.InstituteId))
+                    {
+                        <MudSelectItem T="int" Value="@p.Id">@p.PeriodName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_editingSection.SectionName" Label="Nombre Seccion" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField @bind-Value="_editingSection.Order" Label="Orden" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showSectionDialog = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSection" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    // Tab
+    private int _activeTab = 0;
+    private bool _saving = false;
+
+    // === DATA ===
+    private List<InstituteDto> _institutes = new();
+    private List<InstitutePeriodDto> _periods = new();
+    private List<InstituteGradeDto> _grades = new();
+    private List<InstituteShiftDto> _shifts = new();
+    private List<InstituteSectionDto> _sections = new();
+
+    // === LOADING ===
+    private bool _loadingInstitutes, _loadingPeriods, _loadingGrades, _loadingShifts, _loadingSections;
+
+    // === FILTERS ===
+    private int _selectedInstituteForPeriods;
+    private int _selectedInstituteForGrades, _selectedPeriodForGrades;
+    private int _selectedInstituteForShifts, _selectedPeriodForShifts;
+    private int _selectedInstituteForSections, _selectedPeriodForSections;
+
+    // === EDITING MODELS ===
+    private InstituteDto _editingInstitute = new();
+    private InstitutePeriodDto _editingPeriod = new();
+    private InstituteGradeDto _editingGrade = new();
+    private InstituteShiftDto _editingShift = new();
+    private InstituteSectionDto _editingSection = new();
+
+    // === DIALOGS ===
+    private bool _showInstituteDialog, _showPeriodDialog, _showGradeDialog, _showShiftDialog, _showSectionDialog;
+
+    // Date pickers
+    private DateTime? _periodStartDate, _periodEndDate;
+
+    // Filtered periods
+    private IEnumerable<InstitutePeriodDto> _filteredPeriods =>
+        _selectedInstituteForPeriods == 0 ? _periods : _periods.Where(p => p.InstituteId == _selectedInstituteForPeriods);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInstitutes();
+        await LoadPeriods();
+    }
+
+    // ===== INSTITUTES CRUD =====
+    private async Task LoadInstitutes()
+    {
+        _loadingInstitutes = true;
+        try { _institutes = await ApiService.GetListAsync<InstituteDto>("configuration/institutes"); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loadingInstitutes = false; }
+    }
+
+    private void OpenCreateInstitute() { _editingInstitute = new(); _showInstituteDialog = true; }
+
+    private void OpenEditInstitute(InstituteDto inst)
+    {
+        _editingInstitute = new InstituteDto
+        {
+            Id = inst.Id, Code = inst.Code, Rtn = inst.Rtn, Name = inst.Name,
+            Slogan = inst.Slogan, Address = inst.Address, Phones = inst.Phones,
+            Director = inst.Director, Secretary = inst.Secretary, IsActive = inst.IsActive
+        };
+        _showInstituteDialog = true;
+    }
+
+    private async Task SaveInstitute()
+    {
+        _saving = true;
+        try
+        {
+            if (_editingInstitute.Id == 0)
+                await ApiService.PostAsync<InstituteDto>("configuration/institutes", _editingInstitute);
+            else
+                await ApiService.PutAsync($"configuration/institutes/{_editingInstitute.Id}", _editingInstitute);
+
+            Snackbar.Add("Instituto guardado correctamente", Severity.Success);
+            _showInstituteDialog = false;
+            await LoadInstitutes();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteInstitute(int id)
+    {
+        var result = await DialogService.ShowMessageBoxAsync("Confirmar", "Desea eliminar este instituto?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            try
+            {
+                await ApiService.DeleteAsync($"configuration/institutes/{id}");
+                Snackbar.Add("Instituto eliminado", Severity.Info);
+                await LoadInstitutes();
+            }
+            catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+    }
+
+    // ===== PERIODS CRUD =====
+    private async Task LoadPeriods()
+    {
+        _loadingPeriods = true;
+        try { _periods = await ApiService.GetListAsync<InstitutePeriodDto>("configuration/periods"); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loadingPeriods = false; }
+    }
+
+    private void OpenCreatePeriod()
+    {
+        _editingPeriod = new InstitutePeriodDto
+        {
+            InstituteId = _selectedInstituteForPeriods > 0 ? _selectedInstituteForPeriods : (_institutes.FirstOrDefault()?.Id ?? 0)
+        };
+        _periodStartDate = null;
+        _periodEndDate = null;
+        _showPeriodDialog = true;
+    }
+
+    private void OpenEditPeriod(InstitutePeriodDto p)
+    {
+        _editingPeriod = new InstitutePeriodDto
+        {
+            Id = p.Id, PeriodName = p.PeriodName, InstituteId = p.InstituteId,
+            PromotionName = p.PromotionName, IsCurrent = p.IsCurrent, IsActive = p.IsActive
+        };
+        _periodStartDate = p.StartDate;
+        _periodEndDate = p.EndDate;
+        _showPeriodDialog = true;
+    }
+
+    private async Task SavePeriod()
+    {
+        _saving = true;
+        _editingPeriod.StartDate = _periodStartDate;
+        _editingPeriod.EndDate = _periodEndDate;
+        try
+        {
+            if (_editingPeriod.Id == 0)
+                await ApiService.PostAsync<InstitutePeriodDto>("configuration/periods", _editingPeriod);
+            else
+                await ApiService.PutAsync($"configuration/periods/{_editingPeriod.Id}", _editingPeriod);
+
+            Snackbar.Add("Periodo guardado correctamente", Severity.Success);
+            _showPeriodDialog = false;
+            await LoadPeriods();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeletePeriod(int id)
+    {
+        var result = await DialogService.ShowMessageBoxAsync("Confirmar", "Desea eliminar este periodo?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            try
+            {
+                await ApiService.DeleteAsync($"configuration/periods/{id}");
+                Snackbar.Add("Periodo eliminado", Severity.Info);
+                await LoadPeriods();
+            }
+            catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+    }
+
+    // ===== GRADES CRUD =====
+    private async Task LoadGrades()
+    {
+        if (_selectedInstituteForGrades == 0 || _selectedPeriodForGrades == 0) return;
+        _loadingGrades = true;
+        try { _grades = await ApiService.GetListAsync<InstituteGradeDto>($"configuration/grades/by-institute-period/{_selectedInstituteForGrades}/{_selectedPeriodForGrades}"); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loadingGrades = false; }
+    }
+
+    private void OpenCreateGrade()
+    {
+        _editingGrade = new InstituteGradeDto
+        {
+            InstituteId = _selectedInstituteForGrades > 0 ? _selectedInstituteForGrades : (_institutes.FirstOrDefault()?.Id ?? 0),
+            PeriodId = _selectedPeriodForGrades
+        };
+        _showGradeDialog = true;
+    }
+
+    private void OpenEditGrade(InstituteGradeDto g)
+    {
+        _editingGrade = new InstituteGradeDto
+        {
+            Id = g.Id, InstituteId = g.InstituteId, PeriodId = g.PeriodId, GradeName = g.GradeName,
+            OfficialGrade = g.OfficialGrade, OfficialModality = g.OfficialModality, Order = g.Order,
+            EnrollmentFee = g.EnrollmentFee, MonthlyFee12 = g.MonthlyFee12, MonthlyFee10 = g.MonthlyFee10,
+            MaterialsFee = g.MaterialsFee, OtherFees = g.OtherFees, EvaluationType = g.EvaluationType,
+            EmailSender = g.EmailSender, EmailName = g.EmailName, SmtpServer = g.SmtpServer,
+            SmtpPort = g.SmtpPort, EmailTitle = g.EmailTitle, CounselorName = g.CounselorName,
+            EducationLevelId = g.EducationLevelId, IsActive = g.IsActive
+        };
+        _showGradeDialog = true;
+    }
+
+    private async Task SaveGrade()
+    {
+        _saving = true;
+        try
+        {
+            if (_editingGrade.Id == 0)
+                await ApiService.PostAsync<InstituteGradeDto>("configuration/grades", _editingGrade);
+            else
+                await ApiService.PutAsync($"configuration/grades/{_editingGrade.Id}", _editingGrade);
+
+            Snackbar.Add("Grado guardado correctamente", Severity.Success);
+            _showGradeDialog = false;
+            await LoadGrades();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteGrade(int id)
+    {
+        var result = await DialogService.ShowMessageBoxAsync("Confirmar", "Desea eliminar este grado?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            try
+            {
+                await ApiService.DeleteAsync($"configuration/grades/{id}");
+                Snackbar.Add("Grado eliminado", Severity.Info);
+                await LoadGrades();
+            }
+            catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+    }
+
+    // ===== SHIFTS CRUD =====
+    private async Task LoadShifts()
+    {
+        if (_selectedInstituteForShifts == 0 || _selectedPeriodForShifts == 0) return;
+        _loadingShifts = true;
+        try { _shifts = await ApiService.GetListAsync<InstituteShiftDto>($"configuration/shifts/by-institute-period/{_selectedInstituteForShifts}/{_selectedPeriodForShifts}"); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loadingShifts = false; }
+    }
+
+    private void OpenCreateShift()
+    {
+        _editingShift = new InstituteShiftDto
+        {
+            InstituteId = _selectedInstituteForShifts > 0 ? _selectedInstituteForShifts : (_institutes.FirstOrDefault()?.Id ?? 0),
+            PeriodId = _selectedPeriodForShifts
+        };
+        _showShiftDialog = true;
+    }
+
+    private void OpenEditShift(InstituteShiftDto s)
+    {
+        _editingShift = new InstituteShiftDto
+        {
+            Id = s.Id, ShiftName = s.ShiftName, InstituteId = s.InstituteId,
+            PeriodId = s.PeriodId, Order = s.Order, IsActive = s.IsActive
+        };
+        _showShiftDialog = true;
+    }
+
+    private async Task SaveShift()
+    {
+        _saving = true;
+        try
+        {
+            if (_editingShift.Id == 0)
+                await ApiService.PostAsync<InstituteShiftDto>("configuration/shifts", _editingShift);
+            else
+                await ApiService.PutAsync($"configuration/shifts/{_editingShift.Id}", _editingShift);
+
+            Snackbar.Add("Jornada guardada correctamente", Severity.Success);
+            _showShiftDialog = false;
+            await LoadShifts();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteShift(int id)
+    {
+        var result = await DialogService.ShowMessageBoxAsync("Confirmar", "Desea eliminar esta jornada?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            try
+            {
+                await ApiService.DeleteAsync($"configuration/shifts/{id}");
+                Snackbar.Add("Jornada eliminada", Severity.Info);
+                await LoadShifts();
+            }
+            catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+    }
+
+    // ===== SECTIONS CRUD =====
+    private async Task LoadSections()
+    {
+        if (_selectedInstituteForSections == 0 || _selectedPeriodForSections == 0) return;
+        _loadingSections = true;
+        try { _sections = await ApiService.GetListAsync<InstituteSectionDto>($"configuration/sections/by-institute-period/{_selectedInstituteForSections}/{_selectedPeriodForSections}"); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loadingSections = false; }
+    }
+
+    private void OpenCreateSection()
+    {
+        _editingSection = new InstituteSectionDto
+        {
+            InstituteId = _selectedInstituteForSections > 0 ? _selectedInstituteForSections : (_institutes.FirstOrDefault()?.Id ?? 0),
+            PeriodId = _selectedPeriodForSections
+        };
+        _showSectionDialog = true;
+    }
+
+    private void OpenEditSection(InstituteSectionDto s)
+    {
+        _editingSection = new InstituteSectionDto
+        {
+            Id = s.Id, SectionName = s.SectionName, InstituteId = s.InstituteId,
+            PeriodId = s.PeriodId, Order = s.Order, IsActive = s.IsActive
+        };
+        _showSectionDialog = true;
+    }
+
+    private async Task SaveSection()
+    {
+        _saving = true;
+        try
+        {
+            if (_editingSection.Id == 0)
+                await ApiService.PostAsync<InstituteSectionDto>("configuration/sections", _editingSection);
+            else
+                await ApiService.PutAsync($"configuration/sections/{_editingSection.Id}", _editingSection);
+
+            Snackbar.Add("Seccion guardada correctamente", Severity.Success);
+            _showSectionDialog = false;
+            await LoadSections();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteSection(int id)
+    {
+        var result = await DialogService.ShowMessageBoxAsync("Confirmar", "Desea eliminar esta seccion?", yesText: "Si", cancelText: "No");
+        if (result == true)
+        {
+            try
+            {
+                await ApiService.DeleteAsync($"configuration/sections/{id}");
+                Snackbar.Add("Seccion eliminada", Severity.Info);
+                await LoadSections();
+            }
+            catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        }
+    }
+}
